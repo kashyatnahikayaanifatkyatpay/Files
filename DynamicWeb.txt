@@ -1,0 +1,1170 @@
+Question 1: Student Registration System
+Objective: Create a web app to register students using JSP, Servlet, and JDBC.
+Requirements:
+•	A JSP form to enter: Name, Email, Course, Roll No
+•	Servlet to handle form submission and save data in DB
+•	Show success or error message
+
+Step1:
+Create new dynamic web project
+Step2:
+Create new JSP file Registration.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Student Registration</title>
+</head>
+<body>
+
+<h1>Student Registration Form</h1>
+<form action="RegistrationServlet" method="post">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required><br><br>
+    
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" required><br><br>
+    
+    <label for="course">Course:</label>
+    <input type="text" id="course" name="course" required><br><br>
+    
+    <label for="rollNo">Roll No:</label>
+    <input type="text" id="rollNo" name="rollNo" required><br><br>
+    
+    <button type="submit">Register</button>
+</form>
+
+<% 
+    // Display error message if "error" parameter is present in the request
+    String error = request.getParameter("error");
+    if (error != null && error.equals("1")) { 
+%>
+    <p style="color:red;">Registration not successful. Please try again.</p>
+<% } %>
+
+</body>
+</html>
+
+Step3:
+Create new Servlet package name registrationServlet class name RegistrationServlet
+package registrationServlet;
+
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+@WebServlet("/RegistrationServlet")
+public class RegistrationServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    public RegistrationServlet() {
+        super();
+    }
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // Database credentials and URL	
+        String jdbcUrl = "jdbc:mysql://localhost:3306/Registration"; // Update database name
+        String dbUsername = "root"; // Update database username
+        String dbPassword = "0000"; // Update database password
+
+        // Retrieve form data
+        String name = request.getParameter("name");
+        String email = request.getParameter("email");
+        String course = request.getParameter("course");
+        String rollNo = request.getParameter("rollNo");
+
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, dbUsername, dbPassword)) {
+            // SQL query to insert student data
+            String sql = "INSERT INTO Students (name, email, course, roll_no) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, name);
+                ps.setString(2, email);
+                ps.setString(3, course);
+                ps.setString(4, rollNo);
+
+                int rowsInserted = ps.executeUpdate();
+                if (rowsInserted > 0) {
+                    // Success - forward to Welcome page
+                    RequestDispatcher rd = request.getRequestDispatcher("Welcome.jsp");
+                    rd.forward(request, response);
+                } else {
+                    // Failure - redirect back with an error
+                    response.sendRedirect("Registration.jsp?error=1");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendRedirect("Registration.jsp?error=1");
+        }
+    }
+}
+
+Step4:
+Create table in mysql
+CREATE TABLE Students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    course VARCHAR(255) NOT NULL,
+    roll_no VARCHAR(50) NOT NULL UNIQUE
+);
+
+Step5:
+Create a new jsp file Welcome.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Welcome</title>
+</head>
+<body>
+
+<h1>Registration Successful!</h1>
+<p>Welcome to the student portal.</p>
+
+</body>
+</html>
+
+Step7:Run Registration.jsp on server
+
+
+
+
+======================================================================================================================================
+======================================================================================================================================
+
+Question 2: Login System with JSP and Servlet
+Objective: Implement a login module.
+Requirements:
+•	JSP login form (username + password)
+•	Servlet to validate credentials
+•	Redirect to welcome.jsp on success, back to login on failure
+
+Step1:
+Create a jsp file Login.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" type="text/css" href="stylecss.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Login</h1>
+        <form action="LoginServlet" method="post">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br>
+            <button type="submit">Login</button>
+        </form>
+        <p><a href="Index.html">Back to Home</a></p>
+        <% 
+            String error = request.getParameter("error");
+            if (error != null && error.equals("1")) { 
+        %>
+            <p style="color:red;">Invalid username or password. Please try again.</p>
+        <% } %>
+    </div>
+</body>
+</html>
+
+Step2:
+Create a new servlet package name loginServlet class name LoginServlet
+package loginServlet;
+
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+@WebServlet("/LoginServlet")
+public class LoginServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String jdbcUrl = "jdbc:mysql://localhost:3306/Registration";
+        String dbUser = "root";
+        String dbPassword = "0000";
+
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
+
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, dbUser, dbPassword);
+             PreparedStatement ps = connection.prepareStatement("SELECT uname FROM Signdown WHERE uname=? AND password=?")) {
+
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            ps.setString(1, username);
+            ps.setString(2, password);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    HttpSession session = request.getSession();
+                    session.setAttribute("username", username);
+                    response.sendRedirect("Welcome.jsp");
+                } else {
+                    response.sendRedirect("Login.jsp?error=1");
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing your request.");
+        }
+    }
+}
+
+Step3:
+Create a new JSP Welcome.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome</title>
+</head>
+<body>
+    <h1>Login Successful</h1>
+    <p>Welcome to the application, <b><%= request.getSession().getAttribute("username") %></b>!</p>
+</body>
+</html>
+
+Step4:
+Database table
+CREATE TABLE Signdown (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    uname VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL     
+);
+INSERT INTO Signdown (uname, password) VALUES
+('testuser', 'password123'),
+('admin', 'admin123');
+
+Step5:Run Login.jsp on server
+
+
+======================================================================================================================================
+======================================================================================================================================
+
+Question 5:  Develop a JSP page to display user input.
+o	Take name, email via a form.
+o	On submission, show the data on another JSP page.
+Step1:
+Create a new JSP file InputForm.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Input Form</title>
+</head>
+<body>
+    <h1>Enter Your Details</h1>
+    <form action="DisplayDetails.jsp" method="post">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br><br>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
+
+Step2:
+Create a new JSP file DisplayDetails.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Display Details</title>
+</head>
+<body>
+    <h1>User Details</h1>
+    <p><strong>Name:</strong> <%= request.getParameter("name") %></p>
+    <p><strong>Email:</strong> <%= request.getParameter("email") %></p>
+    <p><a href="InputForm.jsp">Go Back</a></p>
+</body>
+</html>
+
+Step3: Run InputForm.jsp on server
+
+
+======================================================================================================================================
+======================================================================================================================================
+
+Question 6:  Implement a simple registration system using JSP and Servlets.
+o	JSP form: name, email, password, gender, etc.
+o	Servlet: save the data (can be stored in-memory or in a simple database).
+o	Display confirmation.
+
+Step1;
+Create a new JSP file register.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+<form action="RegisterServlet" method="post">
+  Name: <input name="name"><br>
+  Email: <input name="email"><br>
+  Password: <input type="password" name="password"><br>
+  Gender:
+  <input type="radio" name="gender" value="Male"> Male
+  <input type="radio" name="gender" value="Female"> Female<br>
+  <input type="submit">
+</form>
+</body>
+</html>
+
+Step2:
+Create a new Servlet package name registerServlet class name RegisterServlet
+package registerServlet;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+@WebServlet("/RegisterServlet")
+public class RegisterServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
+        String name = req.getParameter("name");
+        String email = req.getParameter("email");
+        String password = req.getParameter("password");
+        String gender = req.getParameter("gender");
+
+        String jdbcUrl = "jdbc:mysql://localhost:3306/Registration"; // Replace with your database details
+        String dbUser = "root";
+        String dbPassword = "0000";
+
+        res.setContentType("text/html");
+        PrintWriter out = res.getWriter();
+
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, dbUser, dbPassword)) {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            String query = "INSERT INTO Users (name, email, password, gender) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement ps = connection.prepareStatement(query)) {
+                ps.setString(1, name);
+                ps.setString(2, email);
+                ps.setString(3, password); // Ideally, hash the password before storing
+                ps.setString(4, gender);
+
+                int result = ps.executeUpdate();
+                if (result > 0) {
+                    out.println("<h3>Registration Successful!</h3>");
+                    out.println("<p>Welcome, " + name + " (" + gender + ")</p>");
+                } else {
+                    out.println("<h3>Registration Failed. Please try again.</h3>");
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+            out.println("<h3>Error: Unable to register. Please try again later.</h3>");
+        }
+    }
+}
+
+Step3:
+Create table
+CREATE TABLE Users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    gender ENUM('Male', 'Female') NOT NULL
+);
+
+Step4:Run register.jsp on server
+
+
+======================================================================================================================================
+======================================================================================================================================
+
+Question 7. Create a basic shopping cart system using JSP and Servlets.
+o	Use JSP to display product list.
+o	Servlet to manage cart (add/remove items).
+o	Session tracking to maintain user’s cart.
+
+Step1:
+Create a new JSP file products.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Product List</title>
+</head>
+<body>
+    <h1>Available Products</h1>
+    <form action="CartServlet" method="post">
+        <table border="1">
+            <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Add to Cart</th>
+            </tr>
+            <tr>
+                <td>Product A</td>
+                <td>$10</td>
+                <td><button type="submit" name="product" value="Product A">Add</button></td>
+            </tr>
+            <tr>
+                <td>Product B</td>
+                <td>$20</td>
+                <td><button type="submit" name="product" value="Product B">Add</button></td>
+            </tr>
+            <tr>
+                <td>Product C</td>
+                <td>$30</td>
+                <td><button type="submit" name="product" value="Product C">Add</button></td>
+            </tr>
+        </table>
+    </form>
+    <p><a href="Viewcart.jsp">View Cart</a></p>
+</body>
+</html>
+
+Step2:
+Create a new servlet package name cartServlet class name CartServlet
+package cartServlet;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+@WebServlet("/CartServlet")
+public class CartServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String product = request.getParameter("product");
+        HttpSession session = request.getSession();
+
+        @SuppressWarnings("unchecked")
+        List<String> cart = (List<String>) session.getAttribute("cart");
+
+        if (cart == null) {
+            cart = new ArrayList<>();
+        }
+
+        if (product != null) {
+            cart.add(product);
+        }
+
+        session.setAttribute("cart", cart);
+        response.sendRedirect("products.jsp");
+    }
+}
+
+Step3:
+Create a new servlet package name cartServlet class name RemoveItemServlet
+package cartServlet;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
+import java.io.IOException;
+import java.util.List;
+
+@WebServlet("/RemoveItemServlet")
+public class RemoveItemServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String product = request.getParameter("product");
+        HttpSession session = request.getSession();
+
+        @SuppressWarnings("unchecked")
+        List<String> cart = (List<String>) session.getAttribute("cart");
+
+        if (cart != null && product != null) {
+            cart.remove(product);
+        }
+
+        session.setAttribute("cart", cart);
+        response.sendRedirect("Viewcart.jsp");
+    }
+}
+
+
+Step4:
+Create a new JSP file Viewcart.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ page import="java.util.List" %>
+<%@ page import="java.util.ArrayList" %>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Your Cart</title>
+</head>
+<body>
+    <h1>Your Cart</h1>
+    <form action="RemoveItemServlet" method="post">
+        <table border="1">
+            <tr>
+                <th>Product</th>
+                <th>Remove</th>
+            </tr>
+            <%
+                // Retrieve the cart from the session
+                Object cartObj = session.getAttribute("cart");
+                List<String> cart = new ArrayList<>();
+                
+                if (cartObj != null && cartObj instanceof List<?>) {
+                    cart = (List<String>) cartObj;  // Safe casting to List<String>
+                }
+
+                if (cart.isEmpty()) {
+            %>
+                <tr>
+                    <td colspan="2">Your cart is empty.</td>
+                </tr>
+            <% } else {
+                   for (String product : cart) {
+            %>
+                <tr>
+                    <td><%= product %></td>
+                    <td><button type="submit" name="product" value="<%= product %>">Remove</button></td>
+                </tr>
+            <%     }
+                }
+            %>
+        </table>
+    </form>
+    <p><a href="products.jsp">Continue Shopping</a></p>
+</body>
+</html>
+
+Step5:Run products.jsp file on server
+
+
+======================================================================================================================================
+======================================================================================================================================
+
+Question 8. Build a feedback system using JSP, Servlet, and JDBC.
+o	Store feedback in a database.
+o	JSP for form display and viewing feedback.
+o	Servlet for data handling.
+
+Step1:
+Create a new JSP file feedback.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Feedback Form</title>
+</head>
+<body>
+    <h1>Submit Your Feedback</h1>
+    <form action="FeedbackServlet" method="post">
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name" required><br><br>
+        <label for="email">Email:</label><br>
+        <input type="email" id="email" name="email" required><br><br>
+        <label for="message">Message:</label><br>
+        <textarea id="message" name="message" rows="5" required></textarea><br><br>
+        <button type="submit">Submit Feedback</button>
+    </form>
+    <% String success = request.getParameter("success"); %>
+    <% if (success != null && success.equals("1")) { %>
+        <p style="color: green;">Feedback submitted successfully!</p>
+    <% } %>
+    <% String error = request.getParameter("error"); %>
+    <% if (error != null && error.equals("1")) { %>
+        <p style="color: red;">Error submitting feedback. Please try again.</p>
+    <% } %>
+    <p><a href="viewFeedback.jsp">View All Feedback</a></p>
+</body>
+</html>
+
+Step2:
+Create a new JSP file viewFeedback.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ page import="java.sql.*" %>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>View Feedback</title>
+</head>
+<body>
+    <h1>Feedback from Users</h1>
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Message</th>
+        </tr>
+        <%
+            try {
+                // Database connection
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/FeedbackDB", "root", "0000");
+
+                // Retrieve feedback from database
+                String sql = "SELECT * FROM feedback";
+                Statement statement = connection.createStatement();
+                ResultSet rs = statement.executeQuery(sql);
+
+                while (rs.next()) {
+        %>
+        <tr>
+            <td><%= rs.getInt("id") %></td>
+            <td><%= rs.getString("name") %></td>
+            <td><%= rs.getString("email") %></td>
+            <td><%= rs.getString("message") %></td>
+        </tr>
+        <%
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+        %>
+        <tr>
+            <td colspan="4">Error retrieving feedback.</td>
+        </tr>
+        <%
+            }
+        %>
+    </table>
+    <p><a href="feedback.jsp">Back to Feedback Form</a></p>
+</body>
+</html>
+Step3:
+Create a new Servlet package name feedbackServlet class name FeedbackServlet
+package feedbackServlet;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+
+@WebServlet("/FeedbackServlet")
+public class FeedbackServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String name = request.getParameter("name");
+        String email = request.getParameter("email");
+        String message = request.getParameter("message");
+
+        try {
+            // Database connection
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/FeedbackDB", "root", "0000");
+
+            // Insert feedback into database
+            String sql = "INSERT INTO feedback (name, email, message) VALUES (?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, name);
+            statement.setString(2, email);
+            statement.setString(3, message);
+            statement.executeUpdate();
+
+            // Redirect to feedback form with a success message
+            response.sendRedirect("feedback.jsp?success=1");
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.sendRedirect("feedback.jsp?error=1");
+        }
+    }
+}
+
+Step4:
+Create database and table
+CREATE DATABASE FeedbackDB;
+
+USE FeedbackDB;
+
+CREATE TABLE feedback (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100),
+    message TEXT
+);
+
+Step5:Run feedback.jsp
+
+
+======================================================================================================================================
+======================================================================================================================================
+
+Question 9 : Mini Blog Application
+o	Add/Edit/Delete blog posts using JSP/Servlet.
+o	Store in DB.
+Show list of blogs on home page
+
+Step1:
+Create a new JSP file addBlog.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Add Blog</title>
+</head>
+<body>
+    <h1>Add Blog Post</h1>
+    <form action="BlogServlet" method="post">
+        <input type="hidden" name="action" value="add">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required><br><br>
+        <label for="content">Content:</label><br>
+        <textarea id="content" name="content" rows="10" cols="30" required></textarea><br><br>
+        <button type="submit">Add Blog</button>
+    </form>
+    <p><a href="home.jsp">Back to Home</a></p>
+</body>
+</html>
+
+Step2:
+Create a new JSP file editBlog.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.sql.*" %>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Blog</title>
+</head>
+<body>
+    <h1>Edit Blog Post</h1>
+    <%
+        int id = Integer.parseInt(request.getParameter("id"));
+        String title = "";
+        String content = "";
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/BlogDB", "root", "0000");
+            String sql = "SELECT * FROM blog WHERE id = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setInt(1, id);
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                title = rs.getString("title");
+                content = rs.getString("content");
+            }
+
+            rs.close();
+            statement.close();
+            connection.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    %>
+    <form action="BlogServlet" method="post">
+        <input type="hidden" name="action" value="edit">
+        <input type="hidden" name="id" value="<%= id %>">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" value="<%= title %>" required><br><br>
+        <label for="content">Content:</label><br>
+        <textarea id="content" name="content" rows="10" cols="30" required><%= content %></textarea><br><br>
+        <button type="submit">Update Blog</button>
+    </form>
+    <p><a href="home.jsp">Back to Home</a></p>
+</body>
+</html>
+
+Step3:
+Create a new JSP file home.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.sql.*" %>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Blog Home</title>
+</head>
+<body>
+    <h1>Blog Posts</h1>
+    <a href="addBlog.jsp">Add New Blog</a>
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Content</th>
+            <th>Actions</th>
+        </tr>
+        <%
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/BlogDB", "root", "0000");
+                String sql = "SELECT * FROM blog";
+                Statement statement = connection.createStatement();
+                ResultSet rs = statement.executeQuery(sql);
+
+                while (rs.next()) {
+        %>
+        <tr>
+            <td><%= rs.getInt("id") %></td>
+            <td><%= rs.getString("title") %></td>
+            <td><%= rs.getString("content") %></td>
+            <td>
+                <a href="editBlog.jsp?id=<%= rs.getInt("id") %>">Edit</a>
+                <a href="BlogServlet?action=delete&id=<%= rs.getInt("id") %>">Delete</a>
+            </td>
+        </tr>
+        <%
+                }
+
+                rs.close();
+                statement.close();
+                connection.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        %>
+    </table>
+</body>
+</html>
+
+Step4:
+Create a new Servlet package name blog class name BlogServlet
+package blog;
+
+import jakarta.servlet.*;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.*;
+import java.io.*;
+import java.sql.*;
+
+@WebServlet("/BlogServlet")
+public class BlogServlet extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String action = request.getParameter("action");
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/BlogDB", "root", "0000");
+
+            if ("add".equals(action)) {
+                String title = request.getParameter("title");
+                String content = request.getParameter("content");
+                String sql = "INSERT INTO blog (title, content) VALUES (?, ?)";
+                PreparedStatement statement = connection.prepareStatement(sql);
+                statement.setString(1, title);
+                statement.setString(2, content);
+                statement.executeUpdate();
+                statement.close();
+            } else if ("edit".equals(action)) {
+                int id = Integer.parseInt(request.getParameter("id"));
+                String title = request.getParameter("title");
+                String content = request.getParameter("content");
+                String sql = "UPDATE blog SET title = ?, content = ? WHERE id = ?";
+                PreparedStatement statement = connection.prepareStatement(sql);
+                statement.setString(1, title);
+                statement.setString(2, content);
+                statement.setInt(3, id);
+                statement.executeUpdate();
+                statement.close();
+            }
+
+            connection.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        response.sendRedirect("home.jsp");
+    }
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String action = request.getParameter("action");
+        if ("delete".equals(action)) {
+            try {
+                int id = Integer.parseInt(request.getParameter("id"));
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/BlogDB", "root", "0000");
+                String sql = "DELETE FROM blog WHERE id = ?";
+                PreparedStatement statement = connection.prepareStatement(sql);
+                statement.setInt(1, id);
+                statement.executeUpdate();
+                statement.close();
+                connection.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        response.sendRedirect("home.jsp");
+    }
+}
+
+Step5:
+Create database and table
+CREATE DATABASE IF NOT EXISTS BlogDB;
+
+USE BlogDB;
+
+CREATE TABLE IF NOT EXISTS blog (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+Step6: Run addBlog.jsp on server
+
+
+======================================================================================================================================
+======================================================================================================================================
+
+Question 10. Library Book Search System
+•	JSP form to enter search criteria.
+•	Servlet retrieves and displays matching books from DB.
+
+Step1:
+Create a new JSP file searchBooks.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Library Book Search</title>
+</head>
+<body>
+    <h1>Search Library Books</h1>
+    <form action="BookSearchServlet" method="get">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title"><br><br>
+
+        <label for="author">Author:</label>
+        <input type="text" id="author" name="author"><br><br>
+
+        <label for="genre">Genre:</label>
+        <input type="text" id="genre" name="genre"><br><br>
+
+        <label for="year">Year:</label>
+        <input type="text" id="year" name="year"><br><br>
+
+        <button type="submit">Search</button>
+    </form>
+</body>
+</html>
+
+Step2:
+Create a new Servlet package name library class name BookSearchServlet
+package library;
+
+import jakarta.servlet.*;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.*;
+import java.io.*;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+@WebServlet("/BookSearchServlet")
+public class BookSearchServlet extends HttpServlet {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String title = request.getParameter("title");
+        String author = request.getParameter("author");
+        String genre = request.getParameter("genre");
+        String year = request.getParameter("year");
+
+        List<String[]> books = new ArrayList<>();
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/LibraryDB", "root", "0000");
+
+            StringBuilder sql = new StringBuilder("SELECT * FROM books WHERE 1=1");
+            if (title != null && !title.isEmpty()) {
+                sql.append(" AND title LIKE ?");
+            }
+            if (author != null && !author.isEmpty()) {
+                sql.append(" AND author LIKE ?");
+            }
+            if (genre != null && !genre.isEmpty()) {
+                sql.append(" AND genre LIKE ?");
+            }
+            if (year != null && !year.isEmpty()) {
+                sql.append(" AND year = ?");
+            }
+
+            PreparedStatement statement = connection.prepareStatement(sql.toString());
+
+            int index = 1;
+            if (title != null && !title.isEmpty()) {
+                statement.setString(index++, "%" + title + "%");
+            }
+            if (author != null && !author.isEmpty()) {
+                statement.setString(index++, "%" + author + "%");
+            }
+            if (genre != null && !genre.isEmpty()) {
+                statement.setString(index++, "%" + genre + "%");
+            }
+            if (year != null && !year.isEmpty()) {
+                statement.setInt(index++, Integer.parseInt(year));
+            }
+
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                books.add(new String[]{
+                    rs.getString("title"),
+                    rs.getString("author"),
+                    rs.getString("genre"),
+                    String.valueOf(rs.getInt("year"))
+                });
+            }
+
+            rs.close();
+            statement.close();
+            connection.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        request.setAttribute("books", books);
+        RequestDispatcher dispatcher = request.getRequestDispatcher("results.jsp");
+        dispatcher.forward(request, response);
+    }
+}
+
+Step3:
+Create a new JSP file results.jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.util.List" %>
+<%@ page import="java.util.ArrayList" %>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Search Results</title>
+</head>
+<body>
+    <h1>Search Results</h1>
+    <%
+        List<String[]> books = (List<String[]>) request.getAttribute("books");
+
+        if (books == null || books.isEmpty()) {
+    %>
+        <p>No matching books found.</p>
+    <%
+        } else {
+    %>
+        <table border="1">
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Genre</th>
+                <th>Year</th>
+            </tr>
+            <%
+                for (String[] book : books) {
+            %>
+                <tr>
+                    <td><%= book[0] %></td>
+                    <td><%= book[1] %></td>
+                    <td><%= book[2] %></td>
+                    <td><%= book[3] %></td>
+                </tr>
+            <%
+                }
+            %>
+        </table>
+    <%
+        }
+    %>
+    <p><a href="searchBooks.jsp">Back to Search</a></p>
+</body>
+</html>
+
+Step4:
+Create database and table
+CREATE DATABASE IF NOT EXISTS LibraryDB;
+USE LibraryDB;
+
+CREATE TABLE IF NOT EXISTS books (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255) NOT NULL,
+    genre VARCHAR(100),
+    year INT
+);
+
+-- Sample Data
+INSERT INTO books (title, author, genre, year) VALUES
+('The Great Gatsby', 'F. Scott Fitzgerald', 'Fiction', 1925),
+('To Kill a Mockingbird', 'Harper Lee', 'Fiction', 1960),
+('1984', 'George Orwell', 'Dystopian', 1949),
+('Pride and Prejudice', 'Jane Austen', 'Romance', 1813);
+
+Step5:Run searchBooks.jsp on server
+
+
+======================================================================================================================================
+======================================================================================================================================
